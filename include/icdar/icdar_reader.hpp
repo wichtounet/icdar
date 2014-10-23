@@ -76,16 +76,14 @@ Container<ICDAR_image<Sub>> read_images(const std::string& directory, const std:
     Container<ICDAR_image<Sub>> images;
     images.reserve(max);
 
-    for(std::size_t image = first; image <= first + max; ++image){
+    for(std::size_t image = first; image < first + max; ++image){
         std::string name = prefix + std::to_string(image) + ".jpg";
         std::string path = directory + "/" + name;
-
-        std::cout << path << std::endl;
 
         auto in_file = fopen(path.c_str(), "rb");
 
         if(!in_file){
-            std::cout << "Error" << std::endl;
+            std::cout << "Error reading image: " << path << std::endl;
             break;
         }
 
@@ -129,17 +127,22 @@ template<template<typename...> class Container = std::vector, template<typename.
 Container<ICDAR_label<Sub>> read_labels(const std::string& directory, const std::string& prefix, std::size_t first, std::size_t total, bool csv, std::size_t limit = 0){
     auto max = limit == 0 ? total : std::min(total, limit);
 
-    Container<ICDAR_label<Sub>> labels(max);
-
-    std::size_t cnt = 0;
+    Container<ICDAR_label<Sub>> labels;
+    labels.reserve(max);
 
     for(std::size_t label = first; label < first + max; ++label){
         std::string name = prefix + std::to_string(label) + ".txt";
         std::string path = directory + "/" + name;
 
-        std::cout << path << std::endl;
-
         std::ifstream file(path);
+
+        if(!file){
+            std::cout << "Error reading label: " << path << std::endl;
+            break;
+        }
+
+        labels.emplace_back();
+
         std::string line;
         while (std::getline(file, line)){
             ICDAR_Rectangle rect;
@@ -169,12 +172,9 @@ Container<ICDAR_label<Sub>> read_labels(const std::string& directory, const std:
 
             rect.text = std::string(line.begin() + pos + 2, line.end());
 
-            labels[label - first].rectangles.emplace_back(std::move(rect));
+            labels.back().rectangles.emplace_back(std::move(rect));
         }
-        ++cnt;
     }
-
-    std::cout << "label cnt:" << cnt << std::endl;
 
     return labels;
 }
@@ -188,11 +188,6 @@ ICDAR_dataset<Container, Sub> read_2013_dataset(const std::string& train_directo
 
     dataset.test_labels = read_labels<Container, Sub>(test_directory, "gt_img_", 1, 233, true, test_limit);
     dataset.test_images = read_images<Container, Sub>(test_directory, "img_", 1, 233, test_limit);
-
-    std::cout << dataset.training_images.size() << std::endl;
-    std::cout << dataset.training_labels.size() << std::endl;
-    std::cout << dataset.test_images.size() << std::endl;
-    std::cout << dataset.test_images.size() << std::endl;
 
     return std::move(dataset);
 }
