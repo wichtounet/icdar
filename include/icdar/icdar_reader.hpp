@@ -73,10 +73,8 @@ template<template<typename...> class Container = std::vector, template<typename.
 Container<ICDAR_image<Sub>> read_images(const std::string& directory, const std::string& prefix, std::size_t first, std::size_t total, std::size_t limit = 0){
     auto max = limit == 0 ? total : std::min(total, limit);
 
-    Container<ICDAR_image<Sub>> images;//(max);
+    Container<ICDAR_image<Sub>> images;
     images.reserve(max);
-
-    std::size_t cnt = 0;
 
     for(std::size_t image = first; image <= first + max; ++image){
         std::string name = prefix + std::to_string(image) + ".jpg";
@@ -111,19 +109,18 @@ Container<ICDAR_image<Sub>> read_images(const std::string& directory, const std:
             jpeg_read_scanlines(&cinfo, buffer, 1);
 
             for(std::size_t i = 0; i < cinfo.output_width; ++i){
-                images.back().pixels[(cinfo.output_scanline - 1) * cinfo.output_width + i].r = buffer[0][i*cinfo.output_components];
-                images.back().pixels[(cinfo.output_scanline - 1) * cinfo.output_width + i].g = buffer[0][i*cinfo.output_components+1];
-                images.back().pixels[(cinfo.output_scanline - 1) * cinfo.output_width + i].b = buffer[0][i*cinfo.output_components+2];
+                auto& pixel = images.back().pixels[(cinfo.output_scanline - 1) * cinfo.output_width + i];
+
+                pixel.r = buffer[0][i*cinfo.output_components];
+                pixel.g = buffer[0][i*cinfo.output_components+1];
+                pixel.b = buffer[0][i*cinfo.output_components+2];
             }
         }
 
         jpeg_finish_decompress(&cinfo);
         jpeg_destroy_decompress(&cinfo);
         fclose(in_file);
-        ++cnt;
     }
-
-    std::cout << "image cnt:" << cnt << std::endl;
 
     return images;
 }
